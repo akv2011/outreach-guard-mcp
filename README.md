@@ -6,8 +6,8 @@ Without `INSTANTLY_API_KEY` it runs on demo data: a fake Instantly workspace tha
 
 Two ways in:
 
-1. Add `https://<host>/mcp` as a custom connector in Claude (or any MCP client) and sign in with Google.
-2. Open `https://<host>/`, sign in with Google, and chat with a Gemini agent that calls the same tools through the same guard.
+1. Add `https://outreach-guard-mcp.vercel.app/mcp` as a custom connector in Claude (or any MCP client) and sign in with Google.
+2. Open https://outreach-guard-mcp.vercel.app, sign in with Google, and chat with a Gemini agent that calls the same tools through the same guard.
 
 ## What it shows
 
