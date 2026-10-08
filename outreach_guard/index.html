@@ -750,6 +750,8 @@ function approvalCard(e, kind = "chat", deadline = Date.now() + APPROVAL_WINDOW_
       if (res.status === 404) return stop("This approval no longer exists.");
       throw new Error(`HTTP ${res.status}`);
     } catch {
+      // The stream may already have reported the outcome even though this response was lost.
+      if (decision) return;
       lock(false);
       problem.textContent = "Could not save your decision. Check your connection and try again.";
       problem.hidden = false;
