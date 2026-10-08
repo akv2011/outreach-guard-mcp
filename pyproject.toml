@@ -1,0 +1,27 @@
+[project]
+name = "outreach-guard"
+version = "0.1.0"
+description = "MCP server for Instantly with per-call guardrails"
+readme = "README.md"
+authors = [
+    { name = "Arunkumar V", email = "arunkumarv1530@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp==4.0.11",
+    "google-genai>=2.29.0",
+    "httpx>=0.28.1",
+    "py-key-value-aio[redis]>=0.4.6",
+]
+
+[dependency-groups]
+dev = [
+    "jsonschema>=4.26.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
