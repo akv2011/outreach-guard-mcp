@@ -125,6 +125,17 @@ def test_chat_limit_trips_on_the_eleventh_request_of_the_day(store):
     assert me["chat_remaining"] == 0 and me["chat_limit"] == 10 and me["mode"] == "demo"
 
 
+def test_a_model_failure_ends_the_stream_without_its_error_text(store):
+    async def failing(contents, declarations):
+        raise RuntimeError("403 Consumer 'api_key:AIzaFAKE-must-not-leak' has been suspended")
+
+    with signed_in(make_app(store, failing), STRANGER) as client:
+        response = client.post("/api/chat", json={"prompt": "hi"})
+    stream = events(response)
+    assert stream[-1]["type"] == "done" and any(e["type"] == "error" and "agent stopped" in e["message"] for e in stream)
+    assert "AIzaFAKE" not in response.text
+
+
 def test_model_text_streams_as_it_arrives(store):
     with signed_in(make_app(store, model_turns(say("Hel", "lo"))), STRANGER) as client:
         stream = events(client.post("/api/chat", json={"prompt": "hi"}))

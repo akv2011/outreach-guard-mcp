@@ -5,6 +5,7 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
 import secrets
 import time
 import uuid
@@ -352,8 +353,9 @@ def build_web(
             try:
                 async with Client(mcp, elicitation_handler=ask_in_browser) as client:
                     await agent.run(prompt, client, generate, emit)
-            except Exception as e:  # the stream must still end cleanly and tell the browser why
-                await emit({"type": "error", "message": f"agent stopped: {e}"})
+            except Exception:  # end the stream cleanly; provider errors can quote the API key, so details stay in the log
+                logging.getLogger(__name__).exception("web agent failed")
+                await emit({"type": "error", "message": "agent stopped: the model call failed, try again in a minute"})
             finally:
                 await events.put({"type": "done", "remaining": remaining})
 
