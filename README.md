@@ -39,6 +39,16 @@ Two ways in:
 
 The guard is one FastMCP middleware (`Guard.on_call_tool`), so a new tool cannot skip it. The decision itself is one pure function, `policy.check(rule, args, user, state, settings)`, fed by a table of rules: `RULES` maps each tool to `Rule(kind, recipient_fields, resolve)`. Registering a tool without a rule fails at startup.
 
+## Verified live
+
+Checked against https://outreach-guard-mcp.vercel.app on 2026-10-08, demo mode, Vercel with Upstash Redis.
+
+- An MCP client (FastMCP `Client`, `auth="oauth"`) registered, passed the consent page and Google sign-in, got a token bound to `resource=/mcp`, negotiated `2026-07-28`, listed 8 tools, read campaigns, and was denied `create_campaign` with `bcc_list: ["phan@giftshop.club"]`.
+- The protected resource metadata, the 401 with `resource_metadata`, and authorization server metadata with S256, CIMD and `iss` all answer as the spec requires.
+- The web page signed in with Google, ran Gemini `gemini-3.8-flash` through the guard, denied a reply that BCC'd `phan@giftshop.club`, held a clean reply for approval, sent it once on approve, and sent nothing on reject.
+- Saving and resetting demo rules works, a cap of 99 is refused with 400, and both changes land in the audit log.
+- Not tested yet: Claude.ai custom connectors and Claude Code.
+
 ## Run locally
 
 ```bash
