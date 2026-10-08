@@ -1,7 +1,8 @@
 import hashlib
 import json
+import re
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from email.utils import getaddresses
 from enum import StrEnum
 from typing import Any
@@ -9,6 +10,7 @@ from typing import Any
 from outreach_guard.config import Settings
 
 APPROVAL_TTL_SECONDS = 300
+DOMAIN = re.compile(r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+")
 
 
 class Kind(StrEnum):
@@ -46,7 +48,7 @@ class State:
 
 @dataclass(frozen=True)
 class Allow:
-    pass
+    recipients: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -116,7 +118,7 @@ def check(rule: Rule, args: Mapping[str, Any], user: str | None, state: State, s
         return Deny(str(e))
     for r in recipients:
         domain = r.rpartition("@")[2]
-        if r in state.blocked or domain in state.blocked:
+        if r in state.blocked or domain in state.blocked or domain in settings.blocked_domains:
             return Deny(f"{r} is on the Instantly block list")
         if domain not in settings.recipient_domains:
             return Deny(f"{r} is outside RECIPIENT_DOMAINS")
@@ -126,7 +128,43 @@ def check(rule: Rule, args: Mapping[str, Any], user: str | None, state: State, s
         return Deny("no recipients to check, refusing to send")
     if state.sends_today + len(recipients) > settings.daily_send_cap:
         return Deny(f"daily send cap: {state.sends_today} of {settings.daily_send_cap} recipients used today")
-    return NeedsApproval(recipients)
+    return NeedsApproval(recipients) if settings.require_approval else Allow(recipients)
+
+
+def parse_overrides(body: object) -> dict[str, Any]:
+    """Validate a demo user's policy overrides. Raises ValueError with a message the page can show."""
+    if not isinstance(body, dict):
+        raise ValueError("send a JSON object")
+    domains = {}
+    for field in ("recipient_domains", "blocked_domains"):
+        values = body.get(field)
+        if not isinstance(values, list) or len(values) > 20 or not all(isinstance(v, str) for v in values):
+            raise ValueError(f"{field} must be a list of at most 20 domains")
+        cleaned = sorted({v.strip().lower() for v in values if v.strip()})
+        if bad := [d for d in cleaned if not DOMAIN.fullmatch(d)]:
+            raise ValueError(f"not a domain: {bad[0]}")
+        domains[field] = cleaned
+    cap = body.get("daily_send_cap")
+    if not isinstance(cap, int) or isinstance(cap, bool) or not 1 <= cap <= 50:
+        raise ValueError("daily_send_cap must be a whole number from 1 to 50")
+    flags = {f: body.get(f) for f in ("write_access", "require_approval")}
+    if not all(isinstance(v, bool) for v in flags.values()):
+        raise ValueError("write_access and require_approval must be true or false")
+    return domains | {"daily_send_cap": cap} | flags
+
+
+def effective_settings(settings: Settings, user: str | None, overrides: Mapping[str, Any] | None) -> Settings:
+    """Global settings with one user's demo overrides on top. Live mode ignores overrides."""
+    if settings.mode != "demo" or not user or not overrides:
+        return settings
+    return replace(
+        settings,
+        recipient_domains=frozenset(overrides["recipient_domains"]),
+        blocked_domains=settings.blocked_domains | frozenset(overrides["blocked_domains"]),
+        daily_send_cap=overrides["daily_send_cap"],
+        allowed_emails=settings.allowed_emails | {user} if overrides["write_access"] else settings.allowed_emails,
+        require_approval=overrides["require_approval"],
+    )
 
 
 def digest(tool: str, args: Mapping[str, Any], recipients: tuple[str, ...]) -> str:

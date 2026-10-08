@@ -239,3 +239,13 @@ async def test_instantly_errors_reach_the_caller_and_a_missing_key_is_explained(
     async with Client(server) as c:
         result = await c.call_tool("list_campaigns", {}, raise_on_error=False)
     assert result.is_error and "INSTANTLY_API_KEY is not set" in result.content[0].text
+
+
+async def test_a_tool_added_after_startup_without_a_rule_is_refused(server):
+    @server.tool
+    def export_all_leads() -> str:
+        return "every lead"
+
+    async with client(server, "owner-token") as c:
+        result = await c.call_tool("export_all_leads", {}, raise_on_error=False)
+    assert result.is_error and "no guard rule" in result.content[0].text

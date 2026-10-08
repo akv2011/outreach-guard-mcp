@@ -15,6 +15,8 @@ from outreach_guard.policy import (
     approval_state,
     check,
     digest,
+    effective_settings,
+    parse_overrides,
 )
 from outreach_guard.server import RULES, build_server
 from tests.conftest import OWNER, STRANGER, make_settings
@@ -146,3 +148,39 @@ def test_demo_mode_opens_the_seeded_domains_and_live_mode_opens_none():
     assert Settings.from_env({}).recipient_domains == {"example.com", "example.org", "example.net"}
     assert Settings.from_env({"INSTANTLY_API_KEY": "k"}).recipient_domains == frozenset()
     assert Settings.from_env({"RECIPIENT_DOMAINS": ""}).recipient_domains == frozenset()
+
+
+def test_approval_off_turns_a_send_into_allow_but_keeps_every_other_check():
+    off = make_settings(DAILY_SEND_CAP="2")
+    off = type(off)(**{**off.__dict__, "require_approval": False})
+    inside = State(resolved=("ana@example.com",))
+    assert check(ACTIVATE, {}, OWNER, inside, off) == Allow(("ana@example.com",))
+    assert denied(check(ACTIVATE, {}, OWNER, State(resolved=("x@outside.net",)), off), "RECIPIENT_DOMAINS")
+    assert denied(check(ACTIVATE, {}, OWNER, State(resolved=inside.resolved, sends_today=2), off), "daily send cap")
+
+
+def test_overrides_are_ignored_in_live_mode_and_for_other_users():
+    overrides = parse_overrides(
+        {"recipient_domains": ["outside.net"], "blocked_domains": [], "daily_send_cap": 9, "write_access": True, "require_approval": False}
+    )
+    demo, live = make_settings(), make_settings(INSTANTLY_API_KEY="k")
+    mine = effective_settings(demo, STRANGER, overrides)
+    assert mine.recipient_domains == {"outside.net"} and STRANGER in mine.allowed_emails and not mine.require_approval
+    assert effective_settings(live, STRANGER, overrides) is live
+    assert effective_settings(demo, STRANGER, None) is demo
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"recipient_domains": ["not a domain"]},
+        {"blocked_domains": ["x.com"] * 21},
+        {"daily_send_cap": 51},
+        {"write_access": "yes"},
+    ],
+)
+def test_overrides_are_validated_before_they_are_stored(bad):
+    good = {"recipient_domains": ["Example.COM "], "blocked_domains": [], "daily_send_cap": 3, "write_access": False, "require_approval": True}
+    assert parse_overrides(good)["recipient_domains"] == ["example.com"]
+    with pytest.raises(ValueError):
+        parse_overrides(good | bad)

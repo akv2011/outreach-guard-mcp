@@ -54,6 +54,7 @@ def _excerpt(text: str, size: int = 1000) -> str:
 
 
 async def campaign_recipients(instantly: Instantly, args: Mapping[str, Any]) -> Resolved:
+    """every lead in the campaign plus its cc_list and bcc_list"""
     campaign = await instantly.get_campaign(str(args.get("campaign_id", "")))
     leads = await instantly.all_lead_emails(campaign.id)
     variant = ((campaign.sequences or [{}])[0].get("steps") or [{}])[0].get("variants") or [{}]
@@ -62,6 +63,7 @@ async def campaign_recipients(instantly: Instantly, args: Mapping[str, Any]) -> 
 
 
 async def reply_recipients(instantly: Instantly, args: Mapping[str, Any]) -> Resolved:
+    """the sender the reply goes back to"""
     original = await instantly.get_email(str(args.get("email_id", "")))
     to = tuple(a for a in (original.from_address_email, original.lead) if a)
     return Resolved(to, f"Subject: {args.get('subject', '')}\nBody: {_excerpt(str(args.get('body', '')))}")
@@ -91,6 +93,20 @@ def hints(rule: Rule) -> ToolAnnotations:
         idempotent_hint=read or rule.idempotent,
         open_world_hint=True,
     )
+
+
+def describe(rule: Rule) -> str:
+    """What the guard checks for a rule, in words, for the Guardrails panel."""
+    parts = ["signed-in Google user" if rule.kind is Kind.READ else "email in ALLOWED_EMAILS"]
+    if rule.recipient_fields:
+        parts.append("recipients in " + ", ".join(rule.recipient_fields))
+    if rule.resolve:
+        parts.append(f"recipients fetched from Instantly: {rule.resolve.__doc__}")
+    if rule.recipient_fields or rule.resolve:
+        parts.append("recipient domains and block list")
+    if rule.kind is Kind.SEND:
+        parts += ["daily send cap", "approval"]
+    return "; ".join(parts) + "; rate limit"
 
 
 def google_auth(settings: Settings, store: AsyncKeyValue) -> GoogleProvider:

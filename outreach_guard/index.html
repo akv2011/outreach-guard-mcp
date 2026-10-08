@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="description" content="Chat with an agent that runs guarded Instantly outreach tools and watch every guard decision live.">
+<title>Outreach Guard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EDEDED' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  color-scheme: dark;
+  --background-100: #0A0A0A;
+  --background-200: #000000;
+  --gray-100: #1A1A1A;
+  --gray-200: #1F1F1F;
+  --gray-300: #292929;
+  --gray-400: #2E2E2E;
+  --gray-500: #454545;
+  --gray-600: #878787;
+  --gray-900: #A1A1A1;
+  --gray-1000: #EDEDED;
+  --blue-700: #0072F5;
+  --blue-900: #52A8FF;
+  --green-700: #45A557;
+  --green-900: #62C073;
+  --amber-700: #FFB224;
+  --amber-900: #F2A20D;
+  --red-700: #E5484D;
+  --red-900: #FF6166;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+@media (pointer: fine) { html { overscroll-behavior: none; } }
+body {
+  margin: 0;
+  background: var(--background-100);
+  color: var(--gray-1000);
+  font: 400 14px/1.5 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p { margin: 0; }
+h3 { font-size: 13px; font-weight: 600; }
+h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: 14px; font-weight: 600; text-wrap: balance; }
+code, pre, .mono { font-family: var(--font-mono); }
+.muted { color: var(--gray-900); }
+.small { font-size: 12px; }
+.num { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--blue-900); outline-offset: 2px; }
+a, button, summary { -webkit-tap-highlight-color: transparent; }
+.wrap { max-width: 1440px; margin-inline: auto; padding-inline: 16px; }
+@media (min-width: 768px) { .wrap { padding-inline: 24px; } }
+
+.skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip:focus { position: fixed; top: 8px; left: 16px; z-index: 1; padding: 12px 16px; border-radius: 6px; background: var(--gray-100); color: var(--blue-900); }
+
+.top-bar { border-bottom: 1px solid var(--gray-400); }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding-block: 14px; }
+.brand { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.brand svg { width: 20px; height: 20px; }
+.account { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 16px; min-width: 0; }
+.email { flex: 0 1 auto; min-width: 0; max-width: min(36ch, 40vw); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  max-width: 100%; min-width: 44px; min-height: 44px; padding: 8px 14px;
+  border: 1px solid var(--gray-400); border-radius: 6px;
+  background: transparent; color: var(--gray-1000);
+  font: 500 14px/1.4 var(--font-sans); text-align: left; text-decoration: none; overflow-wrap: anywhere;
+  cursor: pointer; touch-action: manipulation;
+  transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+}
+.btn:hover:not(:disabled) { background: var(--gray-200); border-color: var(--gray-500); }
+.btn:active:not(:disabled) { background: var(--gray-300); }
+.btn:disabled { cursor: not-allowed; color: var(--gray-900); background: transparent; border-color: var(--gray-400); }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn.sm { font-size: 13px; }
+.btn.primary { background: var(--gray-1000); border-color: var(--gray-1000); color: var(--background-100); }
+.btn.primary:hover:not(:disabled) { background: var(--gray-1000); border-color: var(--gray-1000); opacity: 0.9; }
+.btn.primary:disabled { background: var(--gray-100); border-color: var(--gray-400); color: var(--gray-900); }
+.btn.danger { color: var(--red-900); }
+.btn.danger:hover:not(:disabled) { border-color: var(--red-700); }
+.btn.danger:disabled { color: var(--gray-900); }
+
+.chip {
+  flex: none; display: inline-block; padding: 1px 8px; border-radius: 6px;
+  font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap;
+  background: var(--gray-100); color: var(--gray-900);
+}
+.chip[data-v="allow"] { background: color-mix(in srgb, var(--green-700) 15%, var(--background-100)); color: var(--green-900); }
+.chip[data-v="hold"] { background: color-mix(in srgb, var(--amber-700) 15%, var(--background-100)); color: var(--amber-900); }
+.chip[data-v="deny"] { background: color-mix(in srgb, var(--red-700) 15%, var(--background-100)); color: var(--red-900); }
+.badge { border: 1px solid var(--gray-400); color: var(--gray-1000); }
+.badge[data-v="hold"] { border-color: color-mix(in srgb, var(--amber-700) 40%, var(--background-100)); }
+
+.signed-out { display: grid; gap: 16px; justify-items: start; max-width: 640px; padding-block: 64px; }
+.signed-out .lead { font-size: 18px; line-height: 1.5; text-wrap: pretty; }
+.boot { padding-block: 48px; }
+
+.app { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding-block: 16px 32px; }
+.side { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
+@media (min-width: 1024px) {
+  .app { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 24px; padding-block: 24px 48px; align-items: start; }
+}
+.panel { min-width: 0; border: 1px solid var(--gray-400); border-radius: 8px; background: var(--background-100); }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; padding: 12px 16px; border-bottom: 1px solid var(--gray-400); }
+.panel-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px 16px 16px; }
+.empty { color: var(--gray-900); padding: 16px; text-wrap: pretty; }
+
+.stream { display: flex; flex-direction: column; gap: 16px; min-height: 280px; max-height: min(64vh, 720px); padding: 16px; overflow-y: auto; overscroll-behavior: contain; }
+.stream .empty { padding: 0; }
+.msg-user { align-self: flex-end; max-width: 85%; padding: 8px 12px; border: 1px solid var(--gray-400); border-radius: 8px; background: var(--gray-100); white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg-bot { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.error { color: var(--red-900); overflow-wrap: anywhere; }
+.tool { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 12px; border: 1px solid var(--gray-400); border-radius: 6px; font-size: 13px; }
+.tool-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.tool-name { font-weight: 500; overflow-wrap: anywhere; min-width: 0; }
+.args { color: var(--gray-900); font-size: 12px; overflow-wrap: anywhere; }
+.reason { color: var(--gray-900); overflow-wrap: anywhere; }
+.result { padding-top: 6px; border-top: 1px solid var(--gray-400); }
+.result summary { width: fit-content; color: var(--gray-900); }
+.result summary:hover { color: var(--gray-1000); }
+.result pre { max-height: 320px; margin: 6px 0 0; padding: 10px; overflow: auto; border: 1px solid var(--gray-400); border-radius: 6px; background: var(--background-200); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.approval {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--amber-700) 45%, var(--gray-400)); border-radius: 8px;
+  background: var(--gray-100); font-size: 14px;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--background-200) 60%, transparent);
+}
+.approval-title { font-weight: 600; overflow-wrap: anywhere; }
+.approval-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.approval-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.approval-status { color: var(--gray-900); font-variant-numeric: tabular-nums; }
+
+.composer { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px 16px 16px; border-top: 1px solid var(--gray-400); }
+.suggest { display: flex; flex-wrap: wrap; gap: 8px; }
+.suggest .btn { font-weight: 400; }
+.composer label { font-weight: 500; }
+textarea {
+  width: 100%; min-height: 76px; resize: vertical; padding: 10px 12px;
+  border: 1px solid var(--gray-600); border-radius: 6px;
+  background: var(--background-200); color: var(--gray-1000); font: 16px/1.5 var(--font-sans);
+}
+textarea::placeholder { color: var(--gray-900); }
+.composer-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+
+summary { display: flex; align-items: center; gap: 8px; min-width: 44px; min-height: 44px; border-radius: 4px; cursor: pointer; list-style: none; touch-action: manipulation; }
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  content: ""; flex: none; width: 16px; height: 16px; background: currentColor;
+  -webkit-mask: var(--chevron) center / contain no-repeat; mask: var(--chevron) center / contain no-repeat;
+  transition: transform 150ms ease;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+summary .chip { margin-left: auto; }
+
+.pending { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--gray-400); }
+.pending-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+
+.url-row { display: flex; gap: 8px; align-items: center; }
+.url { flex: 1 1 200px; min-width: 0; padding: 6px 10px; border: 1px solid var(--gray-400); border-radius: 6px; background: var(--background-200); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.disclosures > details { border-top: 1px solid var(--gray-400); }
+.disclosure-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0 0 12px 24px; }
+.disclosure-body.row, .row { display: flex; flex-wrap: wrap; gap: 8px; }
+.cmd { display: block; padding: 8px 10px; border: 1px solid var(--gray-400); border-radius: 6px; background: var(--background-200); font-size: 12px; overflow-wrap: anywhere; }
+.checks { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.check { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.check code { flex-basis: 100%; color: var(--gray-900); font-size: 12px; overflow-wrap: anywhere; }
+.table-wrap { overflow-x: auto; padding-bottom: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { padding: 6px 8px 6px 0; border-top: 1px solid var(--gray-400); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+th { font-weight: 500; }
+thead th { border-top: 0; color: var(--gray-900); }
+
+.log { max-height: 560px; margin: 0; padding: 0; overflow-y: auto; overscroll-behavior: contain; list-style: none; }
+.entry { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 10px 16px; border-top: 1px solid var(--gray-400); }
+.entry:first-child { border-top: 0; }
+.entry-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.entry-head .chip { margin-left: auto; }
+.entry .mono { overflow-wrap: anywhere; }
+
+@media (min-width: 1024px) and (min-height: 560px) {
+  body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  main { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .app { flex: 1; min-height: 0; width: 100%; grid-template-rows: minmax(0, 1fr); align-items: stretch; padding-block: 16px; }
+  .side { display: flex; flex-direction: column; min-height: 0; }
+  .fill { display: flex; flex-direction: column; min-height: 0; }
+  .fill > * { flex: none; }
+  .fill > .grow { flex: 1 1 0; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain; }
+  .fill > .stream { min-height: 96px; }
+  .fill > .pending { flex: 0 1 auto; min-height: 0; max-height: 50%; overflow-y: auto; overscroll-behavior: contain; }
+  .connect { flex: 0 1 auto; max-height: 55%; }
+  .connect > .grow { flex-basis: auto; }
+  .log-panel { flex: 1 1 0; min-height: 200px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top-bar">
+  <div class="wrap top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+      <h1 translate="no">Outreach Guard</h1>
+      <span class="chip badge" id="mode" hidden></span>
+    </div>
+    <div class="account" id="account" hidden>
+      <span class="email mono" id="email" translate="no"></span>
+      <span class="num muted" id="remaining"></span>
+      <button type="button" class="btn sm" id="signout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+        Sign out
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <p class="wrap boot muted" id="boot">Loading…</p>
+
+  <section class="wrap signed-out" id="signed-out" aria-labelledby="signed-out-h" hidden>
+    <h2 id="signed-out-h" class="lead">Chat with an agent that runs Instantly outreach tools through per-call guards, and watch each decision live.</h2>
+    <p class="muted">Reads are open to any Google account. Writes need an allowlisted email. Sends also need a recipient domain check and your approval.</p>
+    <p id="signed-out-approve" hidden>Sign in to review the approval your MCP client sent you here for.</p>
+    <a class="btn primary" id="signin" href="/auth/web/login">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+      Sign in with Google
+    </a>
+  </section>
+
+  <div class="wrap app" id="app" hidden>
+    <section class="panel fill" aria-labelledby="chat-h">
+      <div class="panel-head">
+        <h2 id="chat-h">Agent chat</h2>
+        <span class="muted small" id="chat-note">Every tool call passes the guard first</span>
+      </div>
+      <section class="pending" id="pending" aria-labelledby="pending-h" hidden>
+        <h3 id="pending-h">Pending approvals</h3>
+        <p class="muted small">Sent here by MCP clients that can’t ask you in the client.</p>
+        <div class="pending-list" id="pending-list" aria-live="polite"></div>
+      </section>
+      <div class="stream grow" id="stream" aria-live="polite">
+        <p class="empty" id="chat-empty">Ask about your Instantly campaigns. Reads run right away. Writes and sends stop at the guard.</p>
+      </div>
+      <form class="composer" id="composer">
+        <div class="suggest" id="suggest" aria-label="Suggested prompts" role="group">
+          <button type="button" class="btn sm">List my campaigns</button>
+          <button type="button" class="btn sm">Show analytics for my campaigns</button>
+          <button type="button" class="btn sm">Reply to Ben’s latest email</button>
+          <button type="button" class="btn sm">Reply to the latest email and BCC audit@outside-example.com</button>
+        </div>
+        <label for="prompt">Message</label>
+        <textarea id="prompt" name="prompt" rows="3" autocomplete="off" placeholder="List my campaigns…"></textarea>
+        <div class="composer-row">
+          <p class="muted small" id="status" role="status"></p>
+          <button type="submit" class="btn primary" id="send">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            Send
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <div class="side">
+      <section class="panel fill connect" aria-labelledby="connect-h">
+        <div class="panel-head"><h2 id="connect-h">Connect</h2></div>
+        <div class="panel-body grow">
+          <div class="url-row">
+            <code class="url" id="mcp-url" translate="no"></code>
+            <button type="button" class="btn sm" data-copy="url">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span aria-live="polite">Copy URL</span>
+            </button>
+          </div>
+          <div class="disclosures">
+            <details>
+              <summary translate="no">Claude.ai and Claude Desktop</summary>
+              <div class="disclosure-body">
+                <p>Settings &gt; Connectors &gt; Add custom connector, paste the URL, then sign in with Google.</p>
+                <div class="row"><button type="button" class="btn sm" data-copy="url"><span aria-live="polite">Copy URL</span></button></div>
+              </div>
+            </details>
+            <details>
+              <summary translate="no">Claude Code</summary>
+              <div class="disclosure-body">
+                <code class="cmd" data-text="claude" translate="no"></code>
+                <p class="muted">Run /mcp in Claude Code to sign in.</p>
+                <div class="row"><button type="button" class="btn sm" data-copy="claude"><span aria-live="polite">Copy command</span></button></div>
+              </div>
+            </details>
+            <details>
+              <summary translate="no">Cursor</summary>
+              <div class="disclosure-body row">
+                <a class="btn sm" data-href="cursor">Add to Cursor</a>
+                <button type="button" class="btn sm" data-copy="cursor"><span aria-live="polite">Copy link</span></button>
+              </div>
+            </details>
+            <details>
+              <summary translate="no">VS Code</summary>
+              <div class="disclosure-body row">
+                <a class="btn sm" data-href="vscode">Add to VS Code</a>
+                <button type="button" class="btn sm" data-copy="vscode"><span aria-live="polite">Copy link</span></button>
+              </div>
+            </details>
+            <details>
+              <summary translate="no">MCP Inspector</summary>
+              <div class="disclosure-body">
+                <code class="cmd" data-text="inspector" translate="no"></code>
+                <div class="row"><button type="button" class="btn sm" data-copy="inspector"><span aria-live="polite">Copy command</span></button></div>
+              </div>
+            </details>
+            <details>
+              <summary><span>Connection check</span><span class="chip" id="check-summary">Checking…</span></summary>
+              <div class="disclosure-body">
+                <ul class="checks" id="checks" aria-live="polite"></ul>
+                <div class="row"><button type="button" class="btn sm" id="retry">Retry</button></div>
+              </div>
+            </details>
+            <details>
+              <summary>What works where</summary>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th scope="col">Client</th><th scope="col">Reads</th><th scope="col">Writes</th><th scope="col">Sends</th></tr></thead>
+                  <tbody>
+                    <tr><th scope="row">MCP 2026-07-28 client (tested with FastMCP Client)</th><td>Works</td><td>Works</td><td>Approve in the client</td></tr>
+                    <tr><th scope="row">MCP 2025-11-25 client (tested with FastMCP Client, legacy mode)</th><td>Works</td><td>Works</td><td>Approve on this page via link</td></tr>
+                    <tr><th scope="row" translate="no">Claude.ai</th><td class="muted">Not tested yet</td><td class="muted">Not tested yet</td><td class="muted">Not tested yet</td></tr>
+                    <tr><th scope="row" translate="no">Claude Code</th><td class="muted">Not tested yet</td><td class="muted">Not tested yet</td><td class="muted">Not tested yet</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel fill log-panel" aria-labelledby="log-h">
+        <div class="panel-head">
+          <h2 id="log-h">Decision log</h2>
+          <span class="muted small" id="log-state">Updates every 3 s</span>
+        </div>
+        <p class="empty" id="log-empty">No decisions yet. Each tool call shows up here with its verdict.</p>
+        <ol class="log grow" id="log" aria-live="polite"></ol>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const stream = $("stream");
+const input = $("prompt");
+const log = $("log");
+
+const VERDICTS = { allow: "Allowed", hold: "Needs approval", deny: "Denied" };
+const DECISIONS = { accept: ["Approved", "allow"], decline: ["Rejected", "deny"], timeout: ["Timed out", "hold"] };
+const MODES = { demo: ["Demo data", "demo"], live: ["Live Instantly workspace", "hold"] };
+const DEMO_NOTE = "Fake Instantly workspace. Sends are recorded, never delivered.";
+const CARD_TEXT = {
+  chat: { accept: "Sending…", expired: "This approval expired. Send your request again." },
+  pending: { accept: "Approved. Ask your MCP client to run the same call again.", expired: "This approval expired. Ask again from your client." },
+};
+const APPROVAL_WINDOW_MS = 120_000;
+const RESOLVED_GRACE_MS = 10_000;
+const approveTarget = new URLSearchParams(location.search).get("approve");
+const pending = new Map();
+let links = {};
+const LOG_ROW_CAP = 200;
+const timeFmt = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const state = { limit: 0, remaining: 0, streaming: false, pollId: 0 };
+let seq = 0;
+
+function el(tag, attrs, ...kids) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) node.setAttribute(k, v);
+  node.append(...kids);
+  return node;
+}
+const chip = (kind, label) => el("span", { class: "chip", "data-v": kind }, label);
+const setChip = (node, kind, label) => { node.dataset.v = kind; node.textContent = label; };
+const base64 = (text) => btoa(String.fromCharCode(...new TextEncoder().encode(text)));
+const api = (path, opts = {}) => fetch(path, {
+  credentials: "same-origin",
+  ...opts,
+  headers: opts.body ? { "Content-Type": "application/json" } : {},
+});
+
+async function boot() {
+  let res;
+  try { res = await api("/api/me"); } catch { res = null; }
+  if (res?.status === 401) return showSignedOut();
+  if (!res?.ok) { $("boot").textContent = "Could not reach the server. Reload the page to try again."; return; }
+  const me = await res.json();
+  $("boot").hidden = $("signed-out").hidden = true;
+  $("app").hidden = $("account").hidden = false;
+  $("email").textContent = $("email").title = me.email;
+  const url = me.mcp_url;
+  links = {
+    url,
+    claude: `claude mcp add --transport http outreach-guard ${url}`,
+    cursor: `cursor://anysphere.cursor-deeplink/mcp/install?name=outreach-guard&config=${base64(JSON.stringify({ url }))}`,
+    vscode: `vscode:mcp/install?${encodeURIComponent(JSON.stringify({ name: "outreach-guard", type: "http", url }))}`,
+    inspector: `npx @modelcontextprotocol/inspector --server-url ${url} --transport http`,
+  };
+  $("mcp-url").textContent = $("mcp-url").title = url;
+  for (const node of document.querySelectorAll("[data-text]")) node.textContent = links[node.dataset.text];
+  for (const a of document.querySelectorAll("[data-href]")) a.href = links[a.dataset.href];
+  const mode = MODES[me.mode];
+  if (mode) {
+    Object.assign($("mode"), { textContent: mode[0], hidden: false });
+    $("mode").dataset.v = mode[1];
+  }
+  if (me.mode === "demo") {
+    $("mode").title = DEMO_NOTE;
+    $("chat-note").textContent = DEMO_NOTE;
+  }
+  state.limit = me.chat_limit;
+  setRemaining(me.chat_remaining);
+  refreshAudit();
+  refreshApprovals();
+  runSelfcheck();
+  clearInterval(state.pollId);
+  state.pollId = setInterval(() => { refreshAudit(); refreshApprovals(); }, 3000);
+}
+
+function showSignedOut() {
+  clearInterval(state.pollId);
+  $("boot").hidden = $("app").hidden = $("account").hidden = true;
+  $("signed-out").hidden = false;
+  $("signed-out-approve").hidden = !approveTarget;
+  $("signin").href = `/auth/web/login?next=${encodeURIComponent(location.pathname + location.search)}`;
+}
+
+function setRemaining(n) {
+  state.remaining = n;
+  $("remaining").textContent = `${n} of ${state.limit} left today`;
+  syncComposer();
+}
+
+function syncComposer() {
+  const out = state.remaining <= 0;
+  $("send").disabled = state.streaming || out;
+  for (const b of document.querySelectorAll(".suggest button")) b.disabled = state.streaming || out;
+  $("status").textContent = state.streaming ? "Send unlocks when the reply finishes."
+    : out ? "Daily limit reached. Try again tomorrow."
+    : "Enter sends. Shift+Enter adds a line.";
+}
+
+function follow(mutate) {
+  const pinned = stream.scrollHeight - stream.scrollTop - stream.clientHeight < 48;
+  mutate();
+  if (pinned) stream.scrollTop = stream.scrollHeight;
+}
+
+async function send() {
+  const prompt = input.value.trim();
+  if (state.streaming || state.remaining <= 0) return;
+  if (!prompt) return input.focus();
+  state.streaming = true;
+  syncComposer();
+  $("chat-empty").hidden = $("suggest").hidden = true;
+  const thinking = el("p", { class: "muted" }, "Thinking…");
+  const ctx = { body: el("div", { class: "msg-bot" }, thinking), thinking, text: null, rows: new Map(), approvals: new Map(), done: false };
+  follow(() => stream.append(el("div", { class: "msg-user" }, prompt), ctx.body));
+  try {
+    const res = await api("/api/chat", { method: "POST", body: JSON.stringify({ prompt }) });
+    if (res.status === 401) return showSignedOut();
+    if (res.status === 429) {
+      const body = await res.json().catch(() => ({}));
+      setRemaining(body.remaining ?? 0);
+      return showError(ctx, body.error || "Daily limit reached. Try again tomorrow.");
+    }
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+    input.value = "";
+    await readEvents(res.body, (event) => follow(() => {
+      thinking.remove();
+      handlers[event.type]?.(ctx, event);
+    }));
+  } catch {
+    showError(ctx, "The reply stopped early. Check the decision log for what ran, then try again.");
+  } finally {
+    thinking.remove();
+    state.streaming = false;
+    syncComposer();
+    if (!ctx.done) refreshRemaining();
+  }
+}
+
+async function readEvents(body, onEvent) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    buf = (buf + decoder.decode(value, { stream: !done })).replace(/\r\n?/g, "\n");
+    let cut;
+    while ((cut = buf.indexOf("\n\n")) !== -1) {
+      const data = buf.slice(0, cut).split("\n")
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).replace(/^ /, ""))
+        .join("\n");
+      buf = buf.slice(cut + 2);
+      if (!data) continue;
+      let event;
+      try { event = JSON.parse(data); } catch { continue; }
+      onEvent(event);
+    }
+    if (done) return;
+  }
+}
+
+const handlers = {
+  text(ctx, e) {
+    ctx.text ??= ctx.body.appendChild(el("p", { class: "text" }));
+    ctx.text.append(String(e.text ?? ""));
+  },
+  tool_call(ctx, e) {
+    ctx.text = null;
+    const args = e.args && Object.keys(e.args).length ? JSON.stringify(e.args) : "";
+    const verdict = chip("pending", "Checking…");
+    const reason = el("p", { class: "reason", hidden: "" });
+    const row = el("div", { class: "tool" },
+      el("div", { class: "tool-head" }, el("code", { class: "tool-name", translate: "no" }, String(e.name)), verdict),
+      args ? el("code", { class: "args", translate: "no" }, args) : "",
+      reason);
+    ctx.rows.set(e.id, { row, verdict, reason });
+    ctx.body.append(row);
+  },
+  verdict(ctx, e) {
+    const r = ctx.rows.get(e.id);
+    if (r) {
+      setChip(r.verdict, e.verdict, VERDICTS[e.verdict] ?? String(e.verdict));
+      r.reason.textContent = e.reason ?? "";
+      r.reason.hidden = !e.reason;
+    }
+    refreshAudit();
+  },
+  approval_required(ctx, e) {
+    const card = approvalCard(e);
+    const r = ctx.rows.get(e.id);
+    ctx.approvals.set(e.approval_id, card);
+    if (r) r.card = card;
+    (r?.row ?? ctx.body).append(card.node);
+    card.focus();
+  },
+  approval_resolved(ctx, e) {
+    ctx.approvals.get(e.approval_id)?.settle(e.decision);
+  },
+  tool_result(ctx, e) {
+    const r = ctx.rows.get(e.id);
+    const text = typeof e.result === "string" ? e.result : JSON.stringify(e.result ?? null, null, 2);
+    (r?.row ?? ctx.body).append(el("details", { class: "result" },
+      el("summary", {}, e.ok ? "Result" : "Failed result"),
+      el("pre", { translate: "no" }, text)));
+    r?.card?.result(e);
+  },
+  error(ctx, e) {
+    showError(ctx, String(e.message ?? "Something went wrong. Try again."));
+  },
+  done(ctx, e) {
+    ctx.done = true;
+    setRemaining(e.remaining);
+    refreshAudit();
+  },
+};
+
+function showError(ctx, message) {
+  ctx.thinking.remove();
+  ctx.text = null;
+  follow(() => ctx.body.append(el("p", { class: "error" }, message)));
+}
+
+function approvalCard(e, kind = "chat", deadline = Date.now() + APPROVAL_WINDOW_MS) {
+  const titleId = `approval-${++seq}`;
+  const [title, ...rest] = String(e.message ?? "").split("\n");
+  const body = el("div", { class: "approval-body" });
+  rest.forEach((line, i) => body.append(i ? "\n" : "", line.startsWith("To:") ? el("span", { class: "mono", translate: "no" }, line) : line));
+  const reject = el("button", { type: "button", class: "btn danger" }, "Reject");
+  const approve = el("button", { type: "button", class: "btn primary" }, "Approve Send");
+  const clock = el("span", { "aria-hidden": "true" });
+  const status = el("p", { class: "approval-status" }, "Waiting for your decision… ", clock);
+  const outcome = el("p", { hidden: "" });
+  const problem = el("p", { class: "error", hidden: "" });
+  const node = el("div", { class: "approval", role: "group", "aria-labelledby": titleId },
+    el("p", { class: "approval-title", id: titleId }, title), body,
+    el("div", { class: "approval-actions" }, reject, approve), status, outcome, problem);
+  const toLine = rest.find((line) => line.startsWith("To:")) ?? "";
+  const recipients = (toLine.match(/[^\s,;<>]+@[^\s,;<>]+/g) ?? []).length;
+  let decision = null;
+  const say = (text, isError = false) => {
+    outcome.textContent = text;
+    outcome.className = isError ? "error" : "";
+    outcome.hidden = false;
+  };
+
+  let endedAt = 0;
+  const tick = () => {
+    const s = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    clock.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")} left`;
+  };
+  tick();
+  const timer = setInterval(tick, 1000);
+  const lock = (locked) => { reject.disabled = approve.disabled = locked; };
+  const stop = (message) => {
+    clearInterval(timer);
+    lock(true);
+    endedAt ||= Date.now();
+    problem.textContent = message;
+    problem.hidden = !message;
+  };
+  const settle = (next) => {
+    if (next === decision) return;
+    decision = next;
+    stop("");
+    const [label, kind] = DECISIONS[next] ?? [String(next), "pending"];
+    status.replaceChildren(chip(kind, label));
+    if (next === "accept") say(CARD_TEXT[kind].accept);
+    else say(next === "timeout" ? "Timed out, nothing sent" : "Rejected, nothing sent");
+  };
+  const result = (r) => {
+    if (decision !== "accept") return;
+    if (r.ok) return say(`Sent to ${recipients} ${recipients === 1 ? "recipient" : "recipients"}`);
+    const detail = typeof r.result === "string" ? r.result : r.result?.error ?? r.result?.message;
+    say(detail ? `Send failed. ${String(detail)}` : "Send failed. Open the result below for details.", true);
+  };
+
+  async function decide(choice) {
+    lock(true);
+    problem.hidden = true;
+    try {
+      const res = await api(`/api/approve/${encodeURIComponent(e.approval_id)}`, { method: "POST", body: JSON.stringify({ decision: choice }) });
+      if (res.ok) {
+        refreshAudit();
+        return settle(choice);
+      }
+      if (res.status === 409) return stop("This approval was already decided.");
+      if (res.status === 410) return stop(CARD_TEXT[kind].expired);
+      if (res.status === 403) return stop("This approval belongs to another user.");
+      if (res.status === 404) return stop("This approval no longer exists.");
+      throw new Error(`HTTP ${res.status}`);
+    } catch {
+      lock(false);
+      problem.textContent = "Could not save your decision. Check your connection and try again.";
+      problem.hidden = false;
+    }
+  }
+  reject.addEventListener("click", () => decide("decline"));
+  approve.addEventListener("click", () => decide("accept"));
+  return { node, settle, result, focus: () => reject.focus(), endedAt: () => endedAt, dispose: () => clearInterval(timer) };
+}
+
+let approvalsBusy = false;
+let targetPending = Boolean(approveTarget);
+
+async function refreshApprovals() {
+  if (approvalsBusy || document.hidden) return;
+  approvalsBusy = true;
+  try {
+    const res = await api("/api/approvals");
+    if (res.status === 401) return showSignedOut();
+    if (res.ok) renderApprovals((await res.json()).approvals ?? []);
+  } catch {
+    // The decision log header already reports a lost connection.
+  } finally {
+    approvalsBusy = false;
+  }
+}
+
+// Resolved cards stay a few seconds so the "ask your client again" note can be read.
+function renderApprovals(list) {
+  const box = $("pending-list");
+  const listed = new Set(list.map((a) => a.approval_id));
+  for (const [id, card] of pending) {
+    const ended = card.endedAt();
+    if (ended ? Date.now() - ended > RESOLVED_GRACE_MS : !listed.has(id)) {
+      card.dispose();
+      card.node.remove();
+      pending.delete(id);
+    }
+  }
+  const fresh = list.filter((a) => !pending.has(a.approval_id)).map((a) => {
+    const expires = Number(a.expires_at) * 1000;
+    const card = approvalCard(a, "pending", Number.isFinite(expires) ? expires : undefined);
+    pending.set(a.approval_id, card);
+    box.append(card.node);
+    return card;
+  });
+  if (targetPending) {
+    targetPending = false;
+    if (!pending.has(approveTarget)) box.append(el("p", { class: "muted" }, "That approval is no longer pending. It was decided or it expired."));
+  }
+  $("pending").hidden = box.children.length === 0;
+  const target = pending.get(approveTarget);
+  if (target && fresh.includes(target)) {
+    target.node.scrollIntoView({ block: "start" });
+    target.focus();
+  } else if (fresh.length && document.activeElement === document.body) {
+    fresh[0].focus();
+  }
+}
+
+async function runSelfcheck() {
+  const list = $("checks");
+  setChip($("check-summary"), "pending", "Checking…");
+  list.replaceChildren(el("li", { class: "muted" }, "Checking…"));
+  $("retry").disabled = true;
+  try {
+    const res = await api("/api/selfcheck");
+    if (res.status === 401) return showSignedOut();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const checks = (await res.json()).checks ?? [];
+    const failing = checks.filter((c) => !c.ok).length;
+    list.replaceChildren(...(checks.length ? checks.map((c) => el("li", { class: "check" },
+      el("span", {}, String(c.name)),
+      chip(c.ok ? "allow" : "deny", c.ok ? "Pass" : "Fail"),
+      el("code", { translate: "no" }, String(c.value ?? "")))) : [el("li", { class: "muted" }, "The server returned no checks.")]));
+    setChip($("check-summary"), failing ? "deny" : "allow", failing ? `${failing} failing` : "All pass");
+  } catch {
+    list.replaceChildren(el("li", { class: "error" }, "Could not run the check. Retry in a moment."));
+    setChip($("check-summary"), "deny", "Not run");
+  } finally {
+    $("retry").disabled = false;
+  }
+}
+
+const seen = new Set();
+let auditBusy = false;
+let auditAgain = false;
+const auditKey = (e) => `${e.ts}|${e.user}|${e.tool}|${e.verdict}|${e.args_digest}`;
+
+async function refreshAudit() {
+  if (auditBusy) { auditAgain = true; return; }
+  if (document.hidden) return;
+  auditBusy = true;
+  try {
+    const res = await api("/api/audit");
+    if (res.status === 401) return showSignedOut();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    renderAudit((await res.json()).entries ?? []);
+    $("log-state").textContent = "Updates every 3 s";
+  } catch {
+    $("log-state").textContent = "Reconnecting…";
+  } finally {
+    auditBusy = false;
+    if (auditAgain) { auditAgain = false; refreshAudit(); }
+  }
+}
+
+// Prepend only unseen rows so the live region announces new decisions, not the whole log every 3 s.
+function renderAudit(entries) {
+  const fresh = entries.filter((e) => !seen.has(auditKey(e))).reverse();
+  for (const e of fresh) {
+    seen.add(auditKey(e));
+    const when = new Date(e.ts * 1000);
+    const valid = !Number.isNaN(when.getTime());
+    log.prepend(el("li", { class: "entry" },
+      el("div", { class: "entry-head" },
+        el("time", { class: "num muted small", datetime: valid ? when.toISOString() : "" }, valid ? timeFmt.format(when) : ""),
+        el("code", { class: "tool-name", translate: "no" }, String(e.tool)),
+        chip(e.verdict, VERDICTS[e.verdict] ?? String(e.verdict))),
+      e.reason ? el("p", { class: "reason" }, String(e.reason)) : "",
+      el("p", { class: "mono muted small", translate: "no" }, String(e.user))));
+  }
+  while (log.children.length > LOG_ROW_CAP) log.lastElementChild.remove();
+  $("log-empty").hidden = log.children.length > 0;
+}
+
+async function refreshRemaining() {
+  try {
+    const res = await api("/api/me");
+    if (res.ok) setRemaining((await res.json()).chat_remaining);
+  } catch {
+    // The next completed reply carries the count again.
+  }
+}
+
+$("composer").addEventListener("submit", (e) => { e.preventDefault(); send(); });
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
+});
+for (const b of document.querySelectorAll(".suggest button")) {
+  b.addEventListener("click", () => { input.value = b.textContent.trim(); input.focus(); });
+}
+
+document.addEventListener("click", async (e) => {
+  const button = e.target.closest("button[data-copy]");
+  if (!button) return;
+  const label = button.querySelector("[aria-live]");
+  label.dataset.idle ??= label.textContent;
+  try {
+    await navigator.clipboard.writeText(links[button.dataset.copy]);
+    label.textContent = "Copied";
+  } catch {
+    label.textContent = "Copy failed";
+  }
+  clearTimeout(Number(button.dataset.timer));
+  button.dataset.timer = setTimeout(() => { label.textContent = label.dataset.idle; }, 2000);
+});
+$("retry").addEventListener("click", runSelfcheck);
+
+$("signout").addEventListener("click", async () => {
+  $("signout").disabled = true;
+  await api("/auth/web/logout", { method: "POST" }).catch(() => {});
+  location.reload();
+});
+
+boot();
+</script>
+</body>
+</html>

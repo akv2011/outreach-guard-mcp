@@ -30,6 +30,7 @@ from outreach_guard.policy import (
     approval_state,
     check,
     digest,
+    effective_settings,
 )
 
 # Set by the web chat route from its signed session cookie. A remote MCP client cannot reach it.
@@ -83,6 +84,19 @@ async def audit_entries(store: AsyncKeyValue, user: str, settings: Settings) -> 
     return [e for e in entries if e["user"] == user]
 
 
+def rate_key(user: str | None, now: float) -> str:
+    return f"rate:{user}:{int(now // 60)}"
+
+
+def sends_key(user: str | None, now: float) -> str:
+    return f"sends:{user}:{int(now // 86400)}"
+
+
+async def policy_for(store: AsyncKeyValue, settings: Settings, user: str | None) -> Settings:
+    overrides = await store.get(user, collection="policy") if user and settings.mode == "demo" else None
+    return effective_settings(settings, user, overrides)
+
+
 class Guard(Middleware):
     def __init__(
         self,
@@ -112,12 +126,13 @@ class Guard(Middleware):
             raise await log("deny", "no guard rule for this tool")
         ctx = context.fastmcp_context
         responses = ctx.input_responses if ctx else None
-        calls = await bump(self.store, f"rate:{user}:{int(now // 60)}", ttl=120) if user and responses is None else 0
-        if denied := admit(rule, user, calls, self.settings):
+        settings = await policy_for(self.store, self.settings, user)
+        calls = await bump(self.store, rate_key(user, now), ttl=120) if user and responses is None else 0
+        if denied := admit(rule, user, calls, settings):
             raise await log("deny", denied.reason)
 
         state, preview = State(calls_this_minute=calls), ""
-        sends_key = f"sends:{user}:{int(now // 86400)}"
+        sends = sends_key(user, now)
         if rule.kind is not Kind.READ:
             try:
                 resolved = await rule.resolve(self.instantly, args) if rule.resolve else Resolved()
@@ -125,15 +140,18 @@ class Guard(Middleware):
                 blocked = await self.instantly.blocked() if needs_block_list else frozenset()
             except Exception as e:  # fail closed: a recipient we could not look up is a recipient we did not check
                 raise await log("deny", f"could not check recipients: {e}")
-            state = State(calls, await count(self.store, sends_key), blocked, resolved.recipients)
+            state = State(calls, await count(self.store, sends), blocked, resolved.recipients)
             preview = resolved.preview
 
-        match check(rule, args, user, state, self.settings):
+        match check(rule, args, user, state, settings):
             case Deny(reason):
                 raise await log("deny", reason)
-            case Allow():
-                await log("allow", "")
-                return await call_next(context)
+            case Allow(recipients):
+                await log("allow", f"approval is off in your demo policy, {len(recipients)} recipient(s)" if recipients else "")
+                result = await call_next(context)
+                if recipients:
+                    await bump(self.store, sends, ttl=2 * 86400, by=len(recipients))
+                return result
             case NeedsApproval(recipients):
                 assert user is not None
                 call_digest = digest(name, args, recipients)
@@ -158,7 +176,7 @@ class Guard(Middleware):
                         raise await log("deny", problem)
                     how = "in the client"
                 result = await call_next(context)
-                await bump(self.store, sends_key, ttl=2 * 86400, by=len(recipients))
+                await bump(self.store, sends, ttl=2 * 86400, by=len(recipients))
                 await log("allow", f"approved {how} for {len(recipients)} recipient(s)")
                 return result
 

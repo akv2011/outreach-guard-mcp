@@ -26,6 +26,8 @@ class Settings:
     daily_send_cap: int
     rate_limit_per_min: int
     chat_limit_per_day: int
+    blocked_domains: frozenset[str] = frozenset()
+    require_approval: bool = True
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] = os.environ) -> "Settings":
