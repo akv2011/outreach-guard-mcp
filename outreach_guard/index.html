@@ -183,6 +183,23 @@ th, td { padding: 6px 8px 6px 0; border-top: 1px solid var(--gray-400); text-ali
 th { font-weight: 500; }
 thead th { border-top: 0; color: var(--gray-900); }
 
+.guard-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+fieldset { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
+legend { padding: 0; margin-bottom: 4px; text-wrap: pretty; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.field label { font-weight: 500; }
+.field input {
+  width: 100%; min-height: 44px; padding: 8px 10px;
+  border: 1px solid var(--gray-600); border-radius: 6px;
+  background: var(--background-200); color: var(--gray-1000); font: 16px/1.4 var(--font-mono);
+}
+.field input::placeholder { color: var(--gray-900); }
+.field input:disabled, .toggle input:disabled + span { color: var(--gray-900); cursor: not-allowed; }
+.toggle { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.toggle input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--gray-1000); cursor: inherit; }
+.attention { outline: 2px solid var(--amber-900); outline-offset: 2px; }
+.adjust { justify-self: start; }
+
 .log { max-height: 560px; margin: 0; padding: 0; overflow-y: auto; overscroll-behavior: contain; list-style: none; }
 .entry { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 10px 16px; border-top: 1px solid var(--gray-400); }
 .entry:first-child { border-top: 0; }
@@ -200,9 +217,10 @@ thead th { border-top: 0; color: var(--gray-900); }
   .fill > .grow { flex: 1 1 0; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain; }
   .fill > .stream { min-height: 96px; }
   .fill > .pending { flex: 0 1 auto; min-height: 0; max-height: 50%; overflow-y: auto; overscroll-behavior: contain; }
-  .connect { flex: 0 1 auto; max-height: 55%; }
+  .guard-panel { flex: 1 1 0; min-height: 180px; }
+  .log-panel { flex: 1 1 0; min-height: 180px; }
+  .connect { flex: 0 1 auto; max-height: 40%; }
   .connect > .grow { flex-basis: auto; }
-  .log-panel { flex: 1 1 0; min-height: 200px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -277,6 +295,63 @@ thead th { border-top: 0; color: var(--gray-900); }
     </section>
 
     <div class="side">
+      <section class="panel fill guard-panel" id="guard" aria-labelledby="guard-h">
+        <div class="panel-head">
+          <h2 id="guard-h" tabindex="-1">Guardrails</h2>
+          <span class="chip" id="guard-state">Loading…</span>
+        </div>
+        <div class="panel-body grow">
+          <p class="num muted small" id="usage" tabindex="-1"></p>
+          <form class="guard-form" id="guard-form" novalidate>
+            <fieldset id="guard-fields">
+              <legend class="muted small" id="guard-note">Change your own demo rules, then ask the agent again. Nobody else is affected.</legend>
+              <div class="field">
+                <label for="f-recipient_domains">Allowed recipient domains</label>
+                <input id="f-recipient_domains" name="recipient_domains" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="example.com, example.org…" aria-describedby="h-recipient_domains">
+                <p class="muted small" id="h-recipient_domains">Every to, cc, bcc and lead address must use one of these.</p>
+              </div>
+              <div class="field">
+                <label for="f-blocked_domains">Extra blocked domains</label>
+                <input id="f-blocked_domains" name="blocked_domains" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="giftshop.club…" aria-describedby="h-blocked_domains">
+                <p class="muted small" id="h-blocked_domains">Added to the Instantly block list for your calls.</p>
+              </div>
+              <div class="field">
+                <label for="f-daily_send_cap">Daily send cap</label>
+                <input id="f-daily_send_cap" name="daily_send_cap" type="number" inputmode="numeric" min="1" max="50" step="1" autocomplete="off" aria-describedby="h-daily_send_cap">
+                <p class="muted small" id="h-daily_send_cap">Recipients per day, 1 to 50.</p>
+              </div>
+              <label class="toggle"><input id="f-write_access" name="write_access" type="checkbox"><span>Give me write access in the demo</span></label>
+              <label class="toggle"><input id="f-require_approval" name="require_approval" type="checkbox"><span>Ask me before every send</span></label>
+            </fieldset>
+            <div class="row" id="guard-actions">
+              <button type="submit" class="btn sm primary" id="guard-save">Save Rules</button>
+              <button type="button" class="btn sm" id="guard-reset">Reset to Defaults</button>
+            </div>
+            <p class="small" id="guard-status" role="status" aria-live="polite"></p>
+          </form>
+          <div class="disclosures">
+            <details>
+              <summary>Rules by tool</summary>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th scope="col">Tool</th><th scope="col">Kind</th><th scope="col">Checks</th></tr></thead>
+                  <tbody id="rules"></tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel fill log-panel" aria-labelledby="log-h">
+        <div class="panel-head">
+          <h2 id="log-h">Decision log</h2>
+          <span class="muted small" id="log-state">Updates after each reply</span>
+        </div>
+        <p class="empty" id="log-empty">No decisions yet. Each tool call shows up here with its verdict.</p>
+        <ol class="log grow" id="log" aria-live="polite"></ol>
+      </section>
+
       <section class="panel fill connect" aria-labelledby="connect-h">
         <div class="panel-head"><h2 id="connect-h">Connect</h2></div>
         <div class="panel-body grow">
@@ -325,6 +400,14 @@ thead th { border-top: 0; color: var(--gray-900); }
               </div>
             </details>
             <details>
+              <summary>Read the code over MCP</summary>
+              <div class="disclosure-body">
+                <code class="cmd" data-text="gitmcp" translate="no"></code>
+                <p class="muted">GitMCP serves this repo's code and docs as a remote MCP server. Add the URL to any client to browse the source. It works once the repo is public on GitHub.</p>
+                <div class="row"><button type="button" class="btn sm" data-copy="gitmcp"><span aria-live="polite">Copy URL</span></button></div>
+              </div>
+            </details>
+            <details>
               <summary><span>Connection check</span><span class="chip" id="check-summary">Checking…</span></summary>
               <div class="disclosure-body">
                 <ul class="checks" id="checks" aria-live="polite"></ul>
@@ -348,15 +431,6 @@ thead th { border-top: 0; color: var(--gray-900); }
           </div>
         </div>
       </section>
-
-      <section class="panel fill log-panel" aria-labelledby="log-h">
-        <div class="panel-head">
-          <h2 id="log-h">Decision log</h2>
-          <span class="muted small" id="log-state">Updates every 3 s</span>
-        </div>
-        <p class="empty" id="log-empty">No decisions yet. Each tool call shows up here with its verdict.</p>
-        <ol class="log grow" id="log" aria-live="polite"></ol>
-      </section>
     </div>
   </div>
 </main>
@@ -368,7 +442,17 @@ const stream = $("stream");
 const input = $("prompt");
 const log = $("log");
 
-const VERDICTS = { allow: "Allowed", hold: "Needs approval", deny: "Denied" };
+const VERDICTS = { allow: "Allowed", hold: "Needs approval", deny: "Denied", policy: "Rule change" };
+const POLL_MS = 15_000;
+const GITMCP_URL = "https://gitmcp.io/akv2011/outreach-guard-mcp";
+const POLICY_FIELDS = ["recipient_domains", "blocked_domains", "daily_send_cap", "write_access", "require_approval"];
+const FIELD_FOR = [
+  [/outside RECIPIENT_DOMAINS|no recipient domains/i, "recipient_domains"],
+  [/block list/i, "blocked_domains"],
+  [/daily send cap/i, "daily_send_cap"],
+  [/ALLOWED_EMAILS/, "write_access"],
+  [/rate limit/i, "usage"],
+];
 const DECISIONS = { accept: ["Approved", "allow"], decline: ["Rejected", "deny"], timeout: ["Timed out", "hold"] };
 const MODES = { demo: ["Demo data", "demo"], live: ["Live Instantly workspace", "hold"] };
 const DEMO_NOTE = "Fake Instantly workspace. Sends are recorded, never delivered.";
@@ -383,7 +467,7 @@ const pending = new Map();
 let links = {};
 const LOG_ROW_CAP = 200;
 const timeFmt = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-const state = { limit: 0, remaining: 0, streaming: false, pollId: 0 };
+const state = { limit: 0, remaining: 0, streaming: false, pollId: 0, policy: null, guardDirty: false };
 let seq = 0;
 
 function el(tag, attrs, ...kids) {
@@ -407,6 +491,7 @@ async function boot() {
   if (res?.status === 401) return showSignedOut();
   if (!res?.ok) { $("boot").textContent = "Could not reach the server. Reload the page to try again."; return; }
   const me = await res.json();
+  if (!me.signed_in) return showSignedOut();
   $("boot").hidden = $("signed-out").hidden = true;
   $("app").hidden = $("account").hidden = false;
   $("email").textContent = $("email").title = me.email;
@@ -417,6 +502,7 @@ async function boot() {
     cursor: `cursor://anysphere.cursor-deeplink/mcp/install?name=outreach-guard&config=${base64(JSON.stringify({ url }))}`,
     vscode: `vscode:mcp/install?${encodeURIComponent(JSON.stringify({ name: "outreach-guard", type: "http", url }))}`,
     inspector: `npx @modelcontextprotocol/inspector --server-url ${url} --transport http`,
+    gitmcp: GITMCP_URL,
   };
   $("mcp-url").textContent = $("mcp-url").title = url;
   for (const node of document.querySelectorAll("[data-text]")) node.textContent = links[node.dataset.text];
@@ -432,11 +518,18 @@ async function boot() {
   }
   state.limit = me.chat_limit;
   setRemaining(me.chat_remaining);
-  refreshAudit();
-  refreshApprovals();
+  poll();
   runSelfcheck();
   clearInterval(state.pollId);
-  state.pollId = setInterval(() => { refreshAudit(); refreshApprovals(); }, 3000);
+  state.pollId = setInterval(poll, POLL_MS);
+}
+
+// Hidden tabs make no requests, so an idle tab costs nothing against the store's quota.
+function poll() {
+  if (document.hidden) return;
+  refreshAudit();
+  refreshApprovals();
+  refreshPolicy();
 }
 
 function showSignedOut() {
@@ -548,6 +641,7 @@ const handlers = {
       setChip(r.verdict, e.verdict, VERDICTS[e.verdict] ?? String(e.verdict));
       r.reason.textContent = e.reason ?? "";
       r.reason.hidden = !e.reason;
+      if (e.verdict === "deny") r.reason.after(adjustButton(e.reason));
     }
     refreshAudit();
   },
@@ -577,6 +671,7 @@ const handlers = {
     ctx.done = true;
     setRemaining(e.remaining);
     refreshAudit();
+    refreshPolicy();
   },
 };
 
@@ -753,7 +848,7 @@ async function refreshAudit() {
     if (res.status === 401) return showSignedOut();
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     renderAudit((await res.json()).entries ?? []);
-    $("log-state").textContent = "Updates every 3 s";
+    $("log-state").textContent = "Updates after each reply";
   } catch {
     $("log-state").textContent = "Reconnecting…";
   } finally {
@@ -762,7 +857,7 @@ async function refreshAudit() {
   }
 }
 
-// Prepend only unseen rows so the live region announces new decisions, not the whole log every 3 s.
+// Prepend only unseen rows so the live region announces new decisions, not the whole log on every refresh.
 function renderAudit(entries) {
   const fresh = entries.filter((e) => !seen.has(auditKey(e))).reverse();
   for (const e of fresh) {
@@ -775,11 +870,121 @@ function renderAudit(entries) {
         el("code", { class: "tool-name", translate: "no" }, String(e.tool)),
         chip(e.verdict, VERDICTS[e.verdict] ?? String(e.verdict))),
       e.reason ? el("p", { class: "reason" }, String(e.reason)) : "",
+      e.verdict === "deny" ? adjustButton(e.reason) : "",
       el("p", { class: "mono muted small", translate: "no" }, String(e.user))));
   }
   while (log.children.length > LOG_ROW_CAP) log.lastElementChild.remove();
   $("log-empty").hidden = log.children.length > 0;
 }
+
+const fieldFor = (reason) => FIELD_FOR.find(([pattern]) => pattern.test(String(reason ?? "")))?.[1];
+
+function adjustButton(reason) {
+  const field = fieldFor(reason);
+  return field ? el("button", { type: "button", class: "btn sm adjust", "data-adjust": field }, "Adjust Rule") : "";
+}
+
+function openGuard(field) {
+  const input = $(`f-${field}`);
+  const target = field === "usage" ? $("usage") : input && !input.disabled ? input : $("guard-h");
+  $("guard").scrollIntoView({ block: "nearest" });
+  target.focus();
+  target.classList.add("attention");
+  setTimeout(() => target.classList.remove("attention"), 2000);
+}
+
+let policyBusy = false;
+
+async function refreshPolicy() {
+  if (policyBusy || document.hidden) return;
+  policyBusy = true;
+  try {
+    const res = await api("/api/policy");
+    if (res.status === 401) return showSignedOut();
+    if (res.ok) renderPolicy(await res.json());
+  } catch {
+    // The next poll tries again; the decision log header reports a lost connection.
+  } finally {
+    policyBusy = false;
+  }
+}
+
+function renderPolicy(p) {
+  state.policy = p;
+  const values = p.effective;
+  const label = !p.editable ? "Server config" : p.overridden ? "Your demo rules" : "Defaults";
+  setChip($("guard-state"), p.overridden ? "hold" : "pending", label);
+  const u = p.usage;
+  $("usage").textContent = `Sends today ${u.sends_today} of ${u.daily_send_cap}. Tool calls this minute ${u.calls_this_minute} of ${u.rate_limit_per_min}.`;
+  if (!state.guardDirty) {
+    $("f-recipient_domains").value = values.recipient_domains.join(", ");
+    $("f-blocked_domains").value = values.blocked_domains.join(", ");
+    $("f-daily_send_cap").value = values.daily_send_cap;
+    $("f-write_access").checked = values.write_access;
+    $("f-require_approval").checked = values.require_approval;
+  }
+  $("guard-fields").disabled = !p.editable;
+  $("guard-actions").hidden = !p.editable;
+  $("guard-note").textContent = p.editable
+    ? "Change your own demo rules, then ask the agent again. Nobody else is affected."
+    : "Live mode: these rules come from the server config and cannot be changed here.";
+  $("rules").replaceChildren(...p.rules.map((r) => el("tr", {},
+    el("th", { scope: "row" }, el("code", { translate: "no" }, String(r.tool))),
+    el("td", {}, String(r.kind)),
+    el("td", {}, String(r.checks)))));
+}
+
+async function savePolicy(method, body, done) {
+  const status = $("guard-status");
+  $("guard-save").disabled = $("guard-reset").disabled = true;
+  status.className = "small";
+  status.textContent = "Saving…";
+  try {
+    const res = await api("/api/policy", body ? { method, body: JSON.stringify(body) } : { method });
+    if (res.status === 401) return showSignedOut();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      status.className = "small error";
+      status.textContent = data.error ? `${data.error}. Fix it and save again.` : "Could not save. Try again.";
+      const field = POLICY_FIELDS.find((f) => String(data.error ?? "").includes(f)) ?? "recipient_domains";
+      $(`f-${field}`).focus();
+      return;
+    }
+    state.guardDirty = false;
+    renderPolicy(data);
+    status.textContent = done;
+    refreshAudit();
+  } catch {
+    status.className = "small error";
+    status.textContent = "Could not reach the server. Try again.";
+  } finally {
+    $("guard-save").disabled = $("guard-reset").disabled = false;
+  }
+}
+
+const domainList = (id) => $(id).value.split(/[\s,]+/).map((d) => d.trim()).filter(Boolean);
+
+$("guard-form").addEventListener("input", () => { state.guardDirty = true; });
+$("guard-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  savePolicy("POST", {
+    recipient_domains: domainList("f-recipient_domains"),
+    blocked_domains: domainList("f-blocked_domains"),
+    daily_send_cap: Number($("f-daily_send_cap").value),
+    write_access: $("f-write_access").checked,
+    require_approval: $("f-require_approval").checked,
+  }, "Saved. Your next tool calls use these rules.");
+});
+$("guard-reset").addEventListener("click", () => {
+  state.guardDirty = false;
+  savePolicy("DELETE", null, "Reset to the defaults.");
+});
+document.addEventListener("click", (e) => {
+  const button = e.target.closest("button[data-adjust]");
+  if (button) openGuard(button.dataset.adjust);
+});
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !$("app").hidden) poll(); });
+window.addEventListener("beforeunload", (e) => { if (state.guardDirty) e.preventDefault(); });
 
 async function refreshRemaining() {
   try {
@@ -795,7 +1000,7 @@ input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
 });
 for (const b of document.querySelectorAll(".suggest button")) {
-  b.addEventListener("click", () => { input.value = b.textContent.trim(); input.focus(); });
+  b.addEventListener("click", () => { input.value = b.textContent.trim(); send(); });
 }
 
 document.addEventListener("click", async (e) => {
